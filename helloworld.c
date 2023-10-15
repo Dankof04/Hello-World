@@ -2,9 +2,11 @@
 #include <gui/gui.h>
 #include <stdlib.h>
 #include <gui/elements.h>
+#include <input/input.h>
 
 typedef struct {
     FuriMutex* mutex;
+    bool exit_requested; // Nuevo campo para rastrear la solicitud de salida
 } PluginState;
 
 static void render_callback(Canvas* const canvas, void* ctx) {
@@ -18,8 +20,21 @@ static void render_callback(Canvas* const canvas, void* ctx) {
     furi_mutex_release(plugin_state->mutex);
 }
 
+static void input_callback(InputEvent* input_event, FuriMessageQueue* event_queue, PluginState* plugin_state) {
+    furi_assert(event_queue);
+
+    PluginEvent event = {.type = EventTypeKey, .input = *input_event};
+    furi_message_queue_put(event_queue, &event, FuriWaitForever);
+
+    // Nuevo: Manejar la solicitud de salida al presionar el botón de retorno
+    if (input_event->type == InputTypePress && input_event->key == InputKeyBack) {
+        plugin_state->exit_requested = true;
+    }
+}
+
 int32_t hello_world_app() {
     PluginState* plugin_state = malloc(sizeof(PluginState));
+    plugin_state->exit_requested = false; // Inicializar la solicitud de salida
 
     plugin_state->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
     if (!plugin_state->mutex) {
@@ -36,8 +51,14 @@ int32_t hello_world_app() {
     Gui* gui = furi_record_open(RECORD_GUI);
     gui_add_view_port(gui, view_port, GuiLayerFullscreen);
 
+    // Set input callback
+    view_port_input_callback_set(view_port, input_callback, plugin_state);
+
     // Main loop to keep the application running
     for (bool running = true; running;) {
+        if (plugin_state->exit_requested) {
+            running = false; // Salir del bucle si se solicitó la salida
+        }
         view_port_update(view_port);
     }
 
