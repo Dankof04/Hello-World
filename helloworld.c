@@ -3,6 +3,16 @@
 #include <stdlib.h>
 #include <gui/elements.h>
 
+typedef enum {
+    EventTypeTick,
+    EventTypeKey,
+} EventType;
+
+typedef struct {
+    EventType type;
+    InputEvent input;
+} PluginEvent;
+
 typedef struct {
     FuriMutex* mutex;
 } PluginState;
@@ -19,11 +29,14 @@ static void render_callback(Canvas* const canvas, void* ctx) {
 }
 
 int32_t hello_world_app() {
+    FuriMessageQueue* event_queue = furi_message_queue_alloc(8, sizeof(PluginEvent));
+
     PluginState* plugin_state = malloc(sizeof(PluginState));
 
     plugin_state->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
     if (!plugin_state->mutex) {
         FURI_LOG_E("hello_world", "cannot create mutex\r\n");
+        furi_message_queue_free(event_queue);
         free(plugin_state);
         return 255;
     }
@@ -36,26 +49,32 @@ int32_t hello_world_app() {
     Gui* gui = furi_record_open(RECORD_GUI);
     gui_add_view_port(gui, view_port, GuiLayerFullscreen);
 
-    // Main loop to keep the application running
+    PluginEvent event;
     for (bool running = true; running;) {
-        view_port_update(view_port);
-
-        // Handle application exit when the "Back" button is pressed
-        PluginEvent event;
         FuriStatus event_status = furi_message_queue_get(event_queue, &event, 100);
+
+        furi_mutex_acquire(plugin_state->mutex, FuriWaitForever);
+
         if (event_status == FuriStatusOk) {
-            if (event.type == EventTypeKey && event.input.type == InputTypePress) {
-                if (event.input.key == InputKeyBack) {
-                    running = false; // Salir de la aplicación cuando se pulsa "Back"
+            // press events
+            if (event.type == EventTypeKey) {
+                if (event.input.type == InputTypePress) {
+                    if (event.input.key == InputKeyBack) {
+                        running = false; // Salir de la aplicación cuando se pulsa "Back"
+                    }
                 }
             }
         }
+
+        view_port_update(view_port);
+        furi_mutex_release(plugin_state->mutex);
     }
 
     view_port_enabled_set(view_port, false);
     gui_remove_view_port(gui, view_port);
     furi_record_close(RECORD_GUI);
     view_port_free(view_port);
+    furi_message_queue_free(event_queue);
     furi_mutex_free(plugin_state->mutex);
 
     return 0;
