@@ -39,6 +39,17 @@ int32_t hello_world_app() {
     // Main loop to keep the application running
     for (bool running = true; running;) {
         view_port_update(view_port);
+
+        // Handle application exit when the "Back" button is pressed
+        PluginEvent event;
+        FuriStatus event_status = furi_message_queue_get(event_queue, &event, 100);
+        if (event_status == FuriStatusOk) {
+            if (event.type == EventTypeKey && event.input.type == InputTypePress) {
+                if (event.input.key == InputKeyBack) {
+                    running = false; // Salir de la aplicación cuando se pulsa "Back"
+                }
+            }
+        }
     }
 
     view_port_enabled_set(view_port, false);
