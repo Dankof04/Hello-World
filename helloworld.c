@@ -51,7 +51,7 @@ int32_t hello_world_app() {
 
     PluginEvent event;
     for (bool running = true; running;) {
-        FuriStatus event_status = furi_message_queue_get(event_queue, &event, 100);
+        FuriStatus event_status = furi_message_queue_get(event_queue, &event, FuriWaitForever);  // Espera indefinida para eventos
 
         furi_mutex_acquire(plugin_state->mutex, FuriWaitForever);
 
@@ -60,6 +60,7 @@ int32_t hello_world_app() {
             if (event.type == EventTypeKey) {
                 if (event.input.type == InputTypePress) {
                     if (event.input.key == InputKeyBack) {
+                        printf("Back button pressed\n");
                         running = false; // Salir de la aplicación cuando se pulsa "Back"
                     }
                 }
@@ -79,3 +80,4 @@ int32_t hello_world_app() {
 
     return 0;
 }
+
