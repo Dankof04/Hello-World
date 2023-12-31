@@ -51,34 +51,29 @@ int32_t hello_world_app() {
 
     PluginEvent event;
     for (bool running = true; running;) {
-    FuriStatus event_status = furi_message_queue_get(event_queue, &event, FuriWaitForever);  // Espera indefinida para eventos
+        FuriStatus event_status = furi_message_queue_get(event_queue, &event, FuriWaitForever);  // Espera indefinida para eventos
 
-    furi_mutex_acquire(plugin_state->mutex, FuriWaitForever);
+        furi_mutex_acquire(plugin_state->mutex, FuriWaitForever);
 
-    switch (event_status) {
-        case FuriStatusOk:
-            switch (event.type) {
-                case EventTypeKey:
-                    if (event.input.type == InputTypePress) {
-                        switch (event.input.key) {
-                            case InputKeyBack:
-                                printf("Back button pressed\n");
-                                running = false; // Salir de la aplicación cuando se pulsa "Back"
-                                break;
-                            // Agrega más casos según sea necesario para otros botones
+        switch (event_status) {
+            case FuriStatusOk:
+                switch (event.type) {
+                    case EventTypeKey:
+                        if (event.input.type == InputTypePress) {
+                            switch (event.input.key) {
+                                case InputKeyBack:
+                                    printf("Back button pressed\n");
+                                    running = false; // Salir de la aplicación cuando se pulsa "Back"
+                                    break;
+                                // Agrega más casos según sea necesario para otros botones
+                            }
                         }
-                    }
-                    break;
-                // Agrega más casos según sea necesario para otros tipos de eventos
-            }
-            break;
-        // Agrega más casos según sea necesario para otros estados de eventos
-    }
-
-    view_port_update(view_port);
-    furi_mutex_release(plugin_state->mutex);
-}
-
+                        break;
+                    // Agrega más casos según sea necesario para otros tipos de eventos
+                }
+                break;
+            // Agrega más casos según sea necesario para otros estados de eventos
+        }
 
         view_port_update(view_port);
         furi_mutex_release(plugin_state->mutex);
@@ -93,4 +88,3 @@ int32_t hello_world_app() {
 
     return 0;
 }
-
